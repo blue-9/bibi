@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function() { setTimeout(Bibi.welco
 
 Bibi.welcome = function() {
 
+    O.log("[dev-bib/i] bibi.heart.js");
     O.stamp("Welcome!");
     O.log('Welcome! - BiB/i v' + Bibi["version"] + ' (' + Bibi["build"] + ') - [ja] ' + Bibi["href"] + ' - [en] https://github.com/satorumurmur/bibi', "-0");
     E.dispatch("bibi:says-welcome");
@@ -37,6 +38,8 @@ Bibi.welcome = function() {
     O.contentWindow = window;
     O.contentDocument = document;
 
+    // sMLはjavascriptの標準関数を抽象化したようなもの(以下リンク)
+    // https://github.com/satorumurmur/sML/blob/master/sML.js
     O.HTML  = document.documentElement; O.HTML.className = sML.Environments.join(" ") + " bibi welcome";
     O.Head  = document.head;
     O.Body  = document.body;
@@ -120,10 +123,14 @@ Bibi.initialize = function() {
     // User Parameters
     U.initialize();
 
+    P.initialize();
+    
+    console.log("LOG[1]");
     var PromiseForLoadingExtensions = new Promise(function(resolve, reject) {
         return (P.X.length) ? X.loadFilesInPreset().then(resolve) : resolve();
     });
 
+    console.log("LOG[2]");
     // Window Embedding
     if(window.parent == window) {
         O.WindowEmbedded = 0; // false
@@ -142,6 +149,7 @@ Bibi.initialize = function() {
         if(O.WindowEmbedded == -1) O.WindowEmbeddedDetail = "Embedded in: Unreachable Parent";
     }
 
+    console.log("LOG[3]");
     // Fullscreen
     if((!O.WindowEmbedded || O.ParentHolder) && (O.Body.requestFullscreen || O.Body.webkitRequestFullscreen || O.Body.mozRequestFullScreen || O.Body.msRequestFullscreen)) {
         O.FullscreenEnabled = true;
@@ -152,6 +160,7 @@ Bibi.initialize = function() {
         O.HTML.className = O.HTML.className + " fullscreen-not-enabled";
     }
 
+    console.log("LOG[4]");
     // Writing Mode & Font Size
     O.WritingModeProperty = (function() {
         var HTMLCS = getComputedStyle(O.HTML);
@@ -174,15 +183,18 @@ Bibi.initialize = function() {
     delete VTC;
     sML.deleteStyleRule(SRI4VTC);
 
+    console.log("LOG[5]");
     // Scrollbars
     O.Scrollbars = {
         Width: window.innerWidth - O.HTML.offsetWidth,
         Height: window.innerHeight - O.HTML.offsetHeight
     };
 
+    console.log("LOG[6]");
     // Settings
     S.initialize();
 
+    console.log("LOG[7]");
     sML.removeClass(O.HTML, "welcome");
 
     // Ready ?
@@ -192,9 +204,11 @@ Bibi.initialize = function() {
         E.add("bibi:commands:focus-on",    function(Par) { R.focusOn(Par); });
         E.add("bibi:commands:change-view", function(RVM) { R.changeView(RVM); });
         window.addEventListener("message", M.gate, false);
+        console.log("LOG[8]");
         Bibi.ready();
     });
 
+    console.log("LOG[9]");
 };
 
 
@@ -695,7 +709,7 @@ L.loadNavigation = function() {
     } else if(B.Package.Manifest["toc-ncx"].Path) {
         I.Panel.BookInfo.Navigation.Path = B.Package.Manifest["toc-ncx"].Path;
         I.Panel.BookInfo.Navigation.Type = "TOC-NCX";
-    } 
+    }
 
     return new Promise(function(resolve, reject) {
         if(!I.Panel.BookInfo.Navigation.Type) {
@@ -775,7 +789,7 @@ L.loadItemsInSpreads = function() {
 
 
 L.preprocessResources = function() {
-    
+
     return new Promise(function(resolve, reject) {
         if(B.Unzipped) {
             var FileExtensionRE = (function() {
@@ -1240,7 +1254,7 @@ L.postprocessItem.coordinateLinkages = function(Item, InNav) {
 
 L.postprocessItem.coordinateLinkages.setJump = function(A) {
     A.addEventListener("click", function(Eve) {
-        Eve.preventDefault(); 
+        Eve.preventDefault();
         Eve.stopPropagation();
         if(A.Destination) {
             var Go = L.Opened ? function() {
@@ -1256,7 +1270,7 @@ L.postprocessItem.coordinateLinkages.setJump = function(A) {
     });
     /*
     A.addEventListener(O["pointerdown"], function(Eve) {
-        Eve.preventDefault(); 
+        Eve.preventDefault();
         Eve.stopPropagation();
         return false;
     });
@@ -2336,7 +2350,7 @@ R.focusOn.hatchDestination = function(Destination) { // from Page, Element, or E
     } else if(Destination.tagName) {
              if(typeof Destination.PageIndex   == "number") Destination = { Page: Destination };
         else if(typeof Destination.ItemIndex   == "number") Destination = { Item: Destination };
-        else if(typeof Destination.SpreadIndex == "number") Destination = { Spread: Destination }; 
+        else if(typeof Destination.SpreadIndex == "number") Destination = { Spread: Destination };
         else Destination = { Element: Destination };
     }
     if(Destination.Page    && !Destination.Page.parentElement)    delete Destination.Page;
@@ -3246,7 +3260,7 @@ I.createHelp = function() {
     I.Help.hide = function() {
         I.Help.Timer_deactivate1 = setTimeout(function() {
             sML.removeClass(I.Help, "shown");
-            I.Help.Timer_deactivate2 = setTimeout(function() { 
+            I.Help.Timer_deactivate2 = setTimeout(function() {
                 sML.removeClass(I.Help, "active");
             }, 200);
         }, 100);
@@ -4963,8 +4977,8 @@ X = {}; // Bibi.Extensions
 
 X.initialize = function() {
     X.Files = {};
-    X.Presets = {};
-    X.Loaded = [];
+    X.Presets = {}; // 読み込み前のextensions
+    X.Loaded = [];  // 読み込み後のextensions
     X.Added = [];
 };
 
@@ -4979,11 +4993,16 @@ X.loadFilesInPreset = function() {
                 return false;
             }
             X.Files[FileInfo["name"]] = FileInfo;
+
+            // P.X = P["extensions"] = ExtensionsToBeLoaded;
+            // P.XはextensionsのFileinfo(何が情報？)が収められているようだ
+
             X.Presets[FileInfo["name"]] = P.X[FileInfo["name"]] = {};
             for(var Option in FileInfo) P.X[FileInfo["name"]][Option] = FileInfo[Option];
             document.head.appendChild(
                 sML.create("script", { className: "bibi-extension-script", id: "bibi-extension-script_" + FileInfo["name"], name: FileInfo["name"], src: FileInfo["src"],// async: "async",
                     onload: function() {
+                        // document.createElement(TN), Pros, Sty
                         X.Loaded.push(FileInfo);
                         if(FileInfo.FileIndexInPreset + 1 == P.X.length) {
                             /*
@@ -5045,4 +5064,3 @@ X.add = function(Extension) {
 };
 
 Bibi.x = X.add;
-
